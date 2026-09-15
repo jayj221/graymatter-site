@@ -1,0 +1,11 @@
+GrayMatter interactive brain — 3D asset attribution
+
+The sampled brain-particles.bin surface is adapted from Brain Project's brain.glb:
+https://github.com/itayinbarr/brainproject
+https://github.com/itayinbarr/brainproject/blob/main/brain-atlas/models/brain.glb
+
+Original anatomy: Z-Anatomy contributors and BodyParts3D, © The Database Center for Life Science (DBCLS).
+License: Creative Commons Attribution-ShareAlike 4.0 International.
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Modifications: cortical surfaces selected; positions centered and normalized; 18,000 surface samples exported as little-endian Float32 XYZ triples. The adapted particle asset is distributed under CC BY-SA 4.0. These modifications are for decorative visualization, not clinical use. The website's original code is separate from the licensed anatomy asset.
