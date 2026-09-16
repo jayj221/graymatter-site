@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { APPS } from "./workday";
 import Gray from "./gray";
+import Footer from "./footer";
+import NavMenu from "./nav-menu";
 import { WinDots, WinRail } from "./win";
 import {
   ArrowUpRight, BadgeCheck, Bell, Check, ChevronRight, Clock3, FileText, Gauge,
@@ -149,8 +151,7 @@ export default function Agents() {
       <header className="header wrap">
         <a href="/" className="brand"><img src="/graymatter-mark.svg" alt="" />GrayMatter<span>AI</span></a>
         <nav className={menu ? "mobile-open" : ""} onClick={() => setMenu(false)}>
-          <a href="/">Assistant</a>
-          <a href="/agents" aria-current="page" className="on">Agents</a>
+          <NavMenu current="agents" />
           <a href="/#industries">Who it&apos;s for</a>
           <a href="/#pricing">Packages</a>
         </nav>
@@ -233,18 +234,7 @@ export default function Agents() {
         </div>
       </section>
 
-      <footer className="wrap">
-        <div className="footer-top">
-          <a className="brand" href="/"><img src="/graymatter-mark.svg" alt="" />GrayMatter<span>AI</span></a>
-          <p>Your knowledge. Put to work.</p>
-          <a href="/">Back to the assistant ↑</a>
-        </div>
-        <div className="footer-bottom">
-          <span>© {new Date().getFullYear()} GrayMatter AI</span>
-          <span>Private intelligence for document-led firms.</span>
-          <a href="/#contact-privacy">Inquiry privacy</a>
-        </div>
-      </footer>
+      <Footer />
       <Gray />
       
     </main>

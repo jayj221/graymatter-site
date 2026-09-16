@@ -187,7 +187,7 @@ export default function Nerve() {
     // the path to just under the industry strip is never drawn as a line: a signal runs it as you scroll, then the line grows from there
     const lineIdx = Math.max(0, samples.findIndex(sm => sm.y >= layout.lineY && sm.x < samples[0].x - 200));
     // the line is anchored behind the strip (hidden by it), and the signal lands a little below it, so the line reads as one piece
-    const lineDepth = samples[lineIdx].depth, lineLen = samples[lineIdx].len, SIG_FROM = 20, SIG_TO = 280;
+    const lineDepth = samples[lineIdx].depth, lineLen = samples[lineIdx].len, SIG_FROM = 20, SIG_TO = 280, TRAIL = 150;
     const signalIdx = Math.max(lineIdx, samples.findIndex((sm, k) => k > lineIdx && sm.y >= layout.landY));
     const signalDepth = samples[signalIdx].depth, signalLen = samples[signalIdx].len;
     const atLen = (l: number) => samples[Math.max(0, Math.min(samples.length - 1, Math.round(l / 4)))];
@@ -240,11 +240,17 @@ export default function Nerve() {
       q += (target - q) * (reduced ? 1 : 1 - Math.exp(-dt * 12));
       if (Math.abs(target - q) < 1) q = target;
 
-      // what is drawn: everything from the stem opening down to the tip, trimmed to at most a screen
-      // and a half behind it. One rule for the whole journey, so the signal grows out of the brain
-      // from nothing exactly as the line does, and shrinks back into it the same way.
+      // What is drawn is always one unbroken stretch [from, to] of the same path, and the tail never
+      // jumps: it simply moves more slowly than the tip. Out of the stem the stretch grows to its
+      // travelling length; across the top it runs at that length, so the sweep reads as a signal;
+      // past the bend the tail keeps creeping forward at under half the tip's speed, so the
+      // horizontal shrinks into the corner while the vertical grows out of it; far down the page the
+      // tail is capped a screen and a half behind. Every case is continuous with the next.
       const to = q;
-      const from = Math.max(-rootLen, q - innerHeight * 1.7);
+      const from = q <= lineLen
+        ? q - Math.min(TRAIL, q + rootLen)
+        : Math.min(q - 40, Math.max(q - innerHeight * 1.7, lineLen - TRAIL + .45 * (q - lineLen)));
+      const trimming = q > lineLen;
       const shown = to > -rootLen && to - from > 1;
 
       // the root carries whatever part of [from, to] is before 0, the fixed path everything after
@@ -272,7 +278,8 @@ export default function Nerve() {
         set(el, "transform", `translate(${sp.x.toFixed(1)} ${sp.y.toFixed(1)})`); set(el, "opacity", ".85");
       });
       // the far end fades rather than stopping on a cut, except while the short signal is travelling
-      const fadeTo = head.y, fadeFrom = from <= -rootLen + 1 ? fadeTo - 6000 : Math.min(tailPt.y - 30, fadeTo - 90);
+      // only the end being trimmed away fades; a signal and a line pinned at the bend stay solid
+      const fadeTo = head.y, fadeFrom = trimming ? Math.min(tailPt.y - 30, fadeTo - 90) : fadeTo - 6000;
       tailFade.current.forEach(g => { set(g, "y1", fadeFrom.toFixed(0)); set(g, "y2", fadeTo.toFixed(0)); });
       const clipTop = Math.min(tailPt.y, head.y);
       set(lit.ownerSVGElement?.querySelector("#nerve-lit rect"), "y", String(Math.round(clipTop)));

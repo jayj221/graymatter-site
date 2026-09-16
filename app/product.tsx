@@ -5,7 +5,8 @@ import { ArrowUp, Check, FileText, Mail, MessageSquare, Presentation, Search, Se
 import { WinDots, WinRail } from "./win";
 
 // The product film: five steps of one working day, each with a frame of the product.
-// It plays on its own once it scrolls into view, and any step can be clicked.
+// It plays on its own once it scrolls into view. Any step can be clicked, and pressing
+// and holding freezes the whole thing where it is until the finger comes off.
 const STEPS = [
   { id: "ask", n: "01", title: "Ask", line: "Ask in your own words", blurb: "One question across every system your firm already uses, answered with your own approved material." },
   { id: "answer", n: "02", title: "Answer", line: "An answer you can check", blurb: "Every statement carries the file, page and paragraph it came from, so a reviewer can go straight to the source." },
@@ -22,7 +23,7 @@ const PROMPTS = [
   "Draft the reply to Northline about the board pack",
 ];
 
-function Typing({ active }: { active: boolean }) {
+function Typing({ active, held }: { active: boolean; held: React.RefObject<boolean> }) {
   const [text, setText] = useState("");
   const [line, setLine] = useState(0);
   useEffect(() => {
@@ -31,6 +32,8 @@ function Typing({ active }: { active: boolean }) {
     let i = 0, hold = 0, raf = 0, last = performance.now(), acc = 0;
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
+      // held: keep the clock with the frame, so letting go carries on from here
+      if (held.current) { last = now; return; }
       acc += now - last; last = now;
       if (i < full.length) { if (acc > 32) { acc = 0; i++; setText(full.slice(0, i)); } return; }
       hold += 16;
@@ -42,13 +45,13 @@ function Typing({ active }: { active: boolean }) {
   return <span>{text}<i className="caret" /></span>;
 }
 
-function FrameAsk({ active }: { active: boolean }) {
+function FrameAsk({ active, held }: { active: boolean; held: React.RefObject<boolean> }) {
   return (
     <div className="pf pf-ask">
       <p className="pf-greet">Good morning, Priya. <span>What are we working on?</span></p>
       <div className="ask-bar">
         <Search size={17} />
-        <p><Typing active={active} /></p>
+        <p><Typing active={active} held={held} /></p>
         <button type="button" aria-label="Ask GrayMatter"><ArrowUp size={15} /></button>
       </div>
       <div className="ask-chips">{SOURCES.map(s => <span key={s}>{s}</span>)}</div>
@@ -143,7 +146,11 @@ function FrameMake() {
 export default function Product() {
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [held, setHeld] = useState(false);
+  const heldRef = useRef(false);
+  const left = useRef(DWELL);
   const host = useRef<HTMLDivElement>(null);
+  const hold = (on: boolean) => { heldRef.current = on; setHeld(on); };
 
   // play only while the section is on screen, and never fight a person who picked a step
   useEffect(() => {
@@ -153,15 +160,19 @@ export default function Product() {
     io.observe(el);
     return () => io.disconnect();
   }, []);
+  // a fresh step gets the full dwell; a held one keeps whatever was left of it
+  useEffect(() => { left.current = DWELL; }, [step]);
   useEffect(() => {
-    if (!playing || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const t = setTimeout(() => setStep(s => (s + 1) % STEPS.length), DWELL);
-    return () => clearTimeout(t);
-  }, [playing, step]);
+    if (!playing || held || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const from = performance.now(), wait = left.current;
+    const t = setTimeout(() => setStep(s => (s + 1) % STEPS.length), wait);
+    return () => { clearTimeout(t); left.current = Math.max(0, wait - (performance.now() - from)); };
+  }, [playing, held, step]);
 
-  const frames = [<FrameAsk key="a" active={step === 0} />, <FrameAnswer key="b" />, <FrameMail key="c" active={step === 2} />, <FrameTeam key="d" />, <FrameMake key="e" />];
+  const running = playing && !held;
+  const frames = [<FrameAsk key="a" active={step === 0} held={heldRef} />, <FrameAnswer key="b" />, <FrameMail key="c" active={step === 2} />, <FrameTeam key="d" />, <FrameMake key="e" />];
   return (
-    <section id="product" className="section wrap product" ref={host}>
+    <section id="product" className={"section wrap product" + (held ? " held" : "")} ref={host}>
       <div className="split-heading">
         <div><p className="eyebrow">HOW GRAYMATTER WORKS</p><h2>One day of work,<br /><em>start to finish.</em></h2></div>
         <p className="section-intro">Ask, check, draft, agree and deliver. The same knowledge carries through every step, with the sources attached.</p>
@@ -169,15 +180,17 @@ export default function Product() {
       <div className="product-grid">
         <ol className="product-steps">
           {STEPS.map((s, i) => (
-            <li key={s.id} data-state={i === step ? "on" : i < step ? "done" : "next"}>
-              <button type="button" onClick={() => { setStep(i); }} aria-current={i === step}>
+            <li key={s.id} data-state={i === step ? "on" : i < step ? "done" : "next"}
+              onPointerDown={() => hold(true)} onPointerUp={() => hold(false)}
+              onPointerLeave={() => hold(false)} onPointerCancel={() => hold(false)}>
+              <button type="button" onClick={() => { setStep(i); }} aria-current={i === step} title="Press and hold to pause">
                 <span className="ps-n">{s.n}</span>
                 <span className="ps-body">
                   <b>{s.line}</b>
                   <small><span>{s.blurb}</span></small>
                 </span>
               </button>
-              <i className="ps-bar" style={{ animationDuration: DWELL + "ms", animationPlayState: i === step && playing ? "running" : "paused" }} />
+              <i className="ps-bar" style={{ animationDuration: DWELL + "ms", animationPlayState: i === step && running ? "running" : "paused" }} />
             </li>
           ))}
         </ol>

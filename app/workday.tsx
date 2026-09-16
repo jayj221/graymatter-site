@@ -3,33 +3,13 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Bell, CalendarClock, Check, Clock3, Mail, PenLine, Sparkles, Star } from "lucide-react";
 
-/* ---------------- app tiles: simplified marks in each brand's colours ---------------- */
-const tile = (bg: string, children: ReactNode) => (
-  <svg viewBox="0 0 64 64" aria-hidden="true"><rect x="2" y="2" width="60" height="60" rx="14" fill={bg} />{children}</svg>
-);
-const letter = (bg: string, fg: string, ch: string, size = 30) =>
-  tile(bg, <text x="32" y="43" textAnchor="middle" fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" fontSize={size} fill={fg}>{ch}</text>);
+import { LOGOS } from "./logos";
 
 export const APPS: { name: string; icon: ReactNode }[] = [
-  { name: "Gmail", icon: tile("#fff", <><path d="M14 22v22h7V30l11 8 11-8v14h7V22l-4-3-14 10-14-10z" fill="#EA4335" /><path d="M14 22v22h7V30z" fill="#4285F4" /><path d="M43 30v14h7V22z" fill="#34A853" /><path d="M50 22l-4-3-3 2v9l7-5z" fill="#FBBC04" /></>) },
-  { name: "Outlook", icon: tile("#0A64D0", <><rect x="30" y="18" width="22" height="28" rx="3" fill="#50A5F5" /><rect x="12" y="20" width="26" height="24" rx="4" fill="#0F4FA8" /><ellipse cx="25" cy="32" rx="6.5" ry="8" fill="none" stroke="#fff" strokeWidth="3.5" /></>) },
-  { name: "Microsoft Teams", icon: tile("#4B53BC", <><circle cx="45" cy="21" r="5" fill="#9EA3F2" /><rect x="38" y="28" width="16" height="18" rx="6" fill="#7B83EB" /><rect x="11" y="18" width="28" height="28" rx="4" fill="#3D43A8" /><path d="M18 25h14v4h-5v12h-4V29h-5z" fill="#fff" /></>) },
-  { name: "Slack", icon: tile("#fff", <><rect x="27" y="11" width="7" height="20" rx="3.5" fill="#36C5F0" /><rect x="11" y="27" width="20" height="7" rx="3.5" fill="#2EB67D" /><rect x="30" y="33" width="7" height="20" rx="3.5" fill="#ECB22E" /><rect x="33" y="30" width="20" height="7" rx="3.5" fill="#E01E5A" /></>) },
-  { name: "Word", icon: letter("#185ABD", "#fff", "W") },
-  { name: "Excel", icon: letter("#107C41", "#fff", "X") },
-  { name: "PowerPoint", icon: letter("#C43E1C", "#fff", "P") },
-  { name: "OneDrive", icon: tile("#fff", <path d="M20 44h28a8 8 0 0 0 1-16 12 12 0 0 0-23-3 9 9 0 0 0-6 19z" fill="#0F78D4" />) },
-  { name: "SharePoint", icon: tile("#036C70", <><circle cx="38" cy="26" r="12" fill="#1A9BA1" /><circle cx="42" cy="40" r="9" fill="#37C6D0" /><rect x="12" y="20" width="24" height="24" rx="4" fill="#03787C" /><text x="24" y="39" textAnchor="middle" fontFamily="Arial" fontWeight="700" fontSize="17" fill="#fff">S</text></>) },
-  { name: "Google Drive", icon: tile("#fff", <><path d="M24 12h16l14 24H38z" fill="#FBBC04" /><path d="M24 12L10 36l8 14 14-24z" fill="#34A853" /><path d="M18 50h28l8-14H26z" fill="#4285F4" /></>) },
-  { name: "Google Calendar", icon: tile("#fff", <><rect x="14" y="14" width="36" height="36" rx="5" fill="#fff" stroke="#4285F4" strokeWidth="4" /><rect x="14" y="14" width="36" height="9" fill="#4285F4" /><text x="32" y="44" textAnchor="middle" fontFamily="Arial" fontWeight="700" fontSize="16" fill="#1967D2">31</text></>) },
-  { name: "Zoom", icon: tile("#0B5CFF", <><rect x="13" y="22" width="26" height="20" rx="5" fill="#fff" /><path d="M41 29l10-6v18l-10-6z" fill="#fff" /></>) },
-  { name: "WhatsApp", icon: tile("#25D366", <path d="M32 13a19 19 0 0 0-16 29l-3 9 9-3a19 19 0 1 0 10-35zm9 26c-1 2-4 3-6 2-4-1-9-5-11-9-2-3-2-6 0-8l2-1 3 5-2 2c1 3 3 5 6 6l2-2 5 3z" fill="#fff" />) },
-  { name: "Zoho", icon: tile("#fff", <><rect x="10" y="22" width="10" height="20" rx="2" fill="#E42527" /><rect x="22" y="22" width="10" height="20" rx="2" fill="#089949" /><rect x="34" y="22" width="10" height="20" rx="2" fill="#226DB4" /><rect x="46" y="22" width="8" height="20" rx="2" fill="#F9B21D" /></>) },
-  { name: "Tally", icon: letter("#1F3C88", "#FFD400", "Tally", 15) },
-  { name: "Notion", icon: letter("#fff", "#111", "N", 32) },
-  { name: "Dropbox", icon: tile("#0061FF", <path d="M22 16l10 6-10 6-10-6zm20 0l10 6-10 6-10-6zM12 34l10-6 10 6-10 6zm20 0l10-6 10 6-10 6zm-10 8l10-6 10 6-10 6z" fill="#fff" />) },
-  { name: "Salesforce", icon: tile("#00A1E0", <path d="M19 42a9 9 0 0 1-1-18 10 10 0 0 1 17-5 9 9 0 0 1 12 5 9 9 0 0 1-2 18z" fill="#fff" />) },
-];
+  "Gmail", "Outlook", "Microsoft Teams", "Slack", "Word", "Excel", "PowerPoint", "OneDrive",
+  "SharePoint", "Google Drive", "Google Calendar", "Zoom", "WhatsApp", "Zoho", "Tally",
+  "Notion", "Dropbox", "Salesforce",
+].map(name => ({ name, icon: LOGOS[name] }));
 
 /* ---------------- macOS-style dock: icons grow with closeness to the cursor ---------------- */
 function Dock() {
