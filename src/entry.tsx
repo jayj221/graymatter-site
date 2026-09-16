@@ -5,6 +5,8 @@ import { createRoot } from "react-dom/client";
 import "../app/globals.css";
 import Home from "../app/page";
 import ThankYou from "../app/thank-you/page";
+import Agents from "../app/agents";
 
 const path = location.pathname.replace(/\/+$/, "");
-createRoot(document.getElementById("root")!).render(path.endsWith("/thank-you") ? <ThankYou /> : <Home />);
+const page = path.endsWith("/thank-you") ? <ThankYou /> : path.endsWith("/agents") ? <Agents /> : <Home />;
+createRoot(document.getElementById("root")!).render(page);

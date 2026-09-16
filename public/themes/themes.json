@@ -1,0 +1,72 @@
+[
+  {
+    "id": "graphite",
+    "name": "Graphite + Coral (current)",
+    "mode": "dark",
+    "accent": "#ff6a4d",
+    "note": "Today's palette"
+  },
+  {
+    "id": "ink",
+    "name": "Ink + Amber",
+    "mode": "dark",
+    "accent": "#f5a524",
+    "note": "Warm near-black, amber accent"
+  },
+  {
+    "id": "forest",
+    "name": "Deep Green + Lime",
+    "mode": "dark",
+    "accent": "#8ee06b",
+    "note": "Green-black, fresh accent"
+  },
+  {
+    "id": "midnight",
+    "name": "Midnight Blue + Sky",
+    "mode": "dark",
+    "accent": "#5aa9ff",
+    "note": "Classic enterprise blue"
+  },
+  {
+    "id": "plum",
+    "name": "Plum + Pink",
+    "mode": "dark",
+    "accent": "#ff7ab8",
+    "note": "Purple-black, pink accent"
+  },
+  {
+    "id": "bone",
+    "name": "Bone + Coral",
+    "mode": "light",
+    "accent": "#ff6a4d",
+    "note": "Warm white, our coral"
+  },
+  {
+    "id": "paper",
+    "name": "Cool Paper + Indigo",
+    "mode": "light",
+    "accent": "#5b53e8",
+    "note": "Glean-like: light grey, indigo"
+  },
+  {
+    "id": "sand",
+    "name": "Sand + Teal",
+    "mode": "light",
+    "accent": "#1f8f83",
+    "note": "Beige page, deep teal accent"
+  },
+  {
+    "id": "mist",
+    "name": "Mist + Violet",
+    "mode": "light",
+    "accent": "#6d4aff",
+    "note": "Pale lilac grey, violet accent"
+  },
+  {
+    "id": "teal",
+    "name": "Light Grey + Teal",
+    "mode": "light",
+    "accent": "#12857a",
+    "note": "Teal interface, the brain and its nerve keep our coral"
+  }
+]

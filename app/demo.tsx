@@ -2,7 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ArrowUpRight, Check, FileText, Scale, Sheet, TrendingUp } from "lucide-react";
+import { Check, FileText, Lock, Scale, Search, Sheet, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
+import { WinDots, WinRail } from "./win";
 
 type Note = { title: string; detail: string; source: string; tag: string };
 type Mark = (n: number, children: ReactNode) => ReactNode;
@@ -104,13 +105,19 @@ function ModelReview({ mark }: { mark: Mark }) {
   );
 }
 
-const firms: { id: string; label: string; icon: ReactNode; audience: string; does: string; chips: string[]; prompt: string; draft: string; Doc: (p: { mark: Mark }) => ReactNode; notes: Note[] }[] = [
+type SourceFile = { name: string; app: string; size: string; quote: string; where: string[]; access: string };
+const firms: { id: string; label: string; icon: ReactNode; audience: string; does: string; chips: string[]; prompt: string; draft: string; Doc: (p: { mark: Mark }) => ReactNode; notes: Note[]; files: SourceFile[] }[] = [
   {
     id: "wealth", label: "Wealth advisory", icon: <TrendingUp size={15} />, audience: "wealth managers and family offices",
     does: "Compares each client's holdings with your house model portfolio, explains every gap using your own research, and drafts the review within the client's signed risk profile.",
     chips: ["Read the 29-page model portfolio", "Compared 22 holdings", "Stayed within the risk profile"],
     prompt: "Prepare the Mehta Family Trust's quarterly review against our current model portfolio.",
     draft: "Quarterly review, drafted",
+    files: [
+      { name: "House model portfolio v6.pdf", app: "Google Drive", size: "4 MB", quote: "Small cap moves from 15% to 30% of the equity allocation, held as one 14-fund basket.", where: ["Page 9", "Market-cap allocation"], access: "Advisory team" },
+      { name: "Risk profile, Mehta Family Trust.pdf", app: "SharePoint", size: "1 MB", quote: "Small cap exposure is capped at 35%, with rebalancing in tranches over two quarters.", where: ["Page 4", "Signed March 2026"], access: "Client-restricted · RM and compliance" },
+      { name: "Mehta holdings, Q2 FY27.xlsx", app: "Google Drive", size: "820 KB", quote: "22 schemes across 6 fund houses; equity 58% large, 27% mid, 15% small.", where: ["Sheet: Holdings", "Rows 4 to 26"], access: "Client-restricted · RM only" },
+    ],
     Doc: PortfolioReview,
     notes: [
       { tag: "Gap", title: "Small cap is half the model weight", detail: "The house model moved small cap from 15% to 30% after small caps trailed Nifty 50 by 4.71% a year over five years. This client is still at 15%.", source: "House model portfolio v6.pdf · Page 9 · Market-cap allocation" },
@@ -125,6 +132,11 @@ const firms: { id: string; label: string; icon: ReactNode; audience: string; doe
     chips: ["Traced 8 sheets", "4 exceptions with cell references", "Sign-off stays with the partner"],
     prompt: "Review the ACC incentive model and list anything that doesn't tie out before we sign off.",
     draft: "Review points, drafted",
+    files: [
+      { name: "ACC incentive model, March 2026.xlsx", app: "SharePoint", size: "6 MB", quote: "Base case total incentive ₹15,888 Cr against a high estimate of ₹14,900 Cr.", where: ["Incentive Framework", "D6 and D15"], access: "Engagement team · not shared with the client" },
+      { name: "State ROI working.xlsx", app: "SharePoint", size: "2 MB", quote: "Fiscal return to the state taken at ₹11,040 Cr for the base case.", where: ["State ROI", "Section 2"], access: "Engagement team" },
+      { name: "Engagement checklist.docx", app: "Google Drive", size: "310 KB", quote: "Every figure in the review memo is traced to its source cell before partner sign-off.", where: ["Page 2", "Review standards"], access: "Firm-wide, audit practice" },
+    ],
     Doc: ModelReview,
     notes: [
       { tag: "Exception", title: "Base case is above the high case", detail: "Base total ₹15,888 Cr exceeds the ₹14,900 Cr high estimate. The driver is capital subsidy: ₹6,458 Cr in base against ₹2,800 Cr in high.", source: "Incentive Framework · D6 and D15" },
@@ -139,6 +151,11 @@ const firms: { id: string; label: string; icon: ReactNode; audience: string; doe
     chips: ["Pulled from 4 files in the matter", "Checked 2 statutory deadlines", "1 point flagged for review"],
     prompt: "Draft a Section 138 notice for the Kavya Traders cheque, using our standard format and the matter file.",
     draft: "Legal notice, drafted",
+    files: [
+      { name: "Firm template, S.138 notice v4.docx", app: "SharePoint", size: "180 KB", quote: "Demand payment within 15 days of receipt of this notice, as required under Section 138(c).", where: ["Para 4", "Approved format"], access: "Firm-wide precedent" },
+      { name: "Bank return memo.pdf", app: "Google Drive", size: "240 KB", quote: "Cheque returned unpaid, reason: funds insufficient. Memo dated 22.08.2026.", where: ["Page 1", "Return reason"], access: "Privileged · matter team only" },
+      { name: "Client ledger.xlsx", app: "Tally", size: "1 MB", quote: "Invoices NS/2231 to NS/2236 outstanding, total ₹4,85,000.", where: ["Kavya Traders", "Row 88"], access: "Privileged · matter team only" },
+    ],
     Doc: LegalNotice,
     notes: [
       { tag: "Verified", title: "Amount matches ledger and cheque", detail: "₹4,85,000 matches the cheque image and the client ledger, where invoices NS/2231 to NS/2236 total ₹4,85,000.", source: "Client ledger.xlsx · Kavya Traders · Row 88" },
@@ -149,6 +166,42 @@ const firms: { id: string; label: string; icon: ReactNode; audience: string; doe
   },
 ];
 
+function Sources({ firm }: { firm: (typeof firms)[number] }) {
+  return (
+    <div className="gm-app app-win">
+      <WinRail />
+      <div className="aw-main">
+      <div className="aw-bar">
+        <WinDots />
+        <b>GrayMatter</b><small>· {firm.label} workspace</small>
+        <span className="aw-new">New chat</span>
+      </div>
+      <div className="gm-body">
+      <div className="gm-q"><span>You</span><p>{firm.prompt}</p></div>
+      <p className="gm-found"><Sparkles size={13} /> Found {firm.files.length} files across your connected systems</p>
+      {firm.files.map(f => (
+        <article className="gm-file" key={f.name}>
+          <header>
+            <FileText size={15} />
+            <b>{f.name}</b>
+            <span className="gm-actions"><button type="button">View citations</button><button type="button" className="chat">Chat</button></span>
+          </header>
+          <p className="gm-meta">{f.size} · {f.app}</p>
+          <blockquote>&ldquo;{f.quote}&rdquo;</blockquote>
+          <p className="gm-where">{f.where.map(w => <span key={w}>{w}</span>)}<span className="gm-access"><Lock size={11} /> {f.access}</span></p>
+        </article>
+      ))}
+      <p className="gm-guard"><ShieldCheck size={13} /> Everything above stayed inside the firm. No file, excerpt or figure was sent to ChatGPT, Claude or any outside model.</p>
+      <div className="gm-bar">
+        <span>Ask anything about these files…</span>
+        <span className="gm-bar-right"><button type="button" className="gm-search"><Search size={13} /> Search</button></span>
+      </div>
+      </div>
+      </div>
+    </div>
+  );
+}
+
 function FirmPanel({ firm }: { firm: (typeof firms)[number] }) {
   const { active, setActive, mark } = useMarks();
   const Doc = firm.Doc;
@@ -158,7 +211,7 @@ function FirmPanel({ firm }: { firm: (typeof firms)[number] }) {
         <p><span>For {firm.audience}.</span> {firm.does}</p>
         <ul>{firm.chips.map(c => <li key={c}><Check size={13} />{c}</li>)}</ul>
       </div>
-      <div className="prompt"><img src="/graymatter-mark.svg" alt="" /><p>&ldquo;{firm.prompt}&rdquo;</p><ArrowUpRight size={18} /></div>
+      <Sources firm={firm} />
       <div className="draft-layout">
         <div className="doc-col">
           <div className="paper-meta dark"><FileText size={15} /> {firm.draft.toUpperCase()} <span>TAP A HIGHLIGHT</span></div>

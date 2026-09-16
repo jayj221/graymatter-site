@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 96" width="480" height="384">
+  <title>GrayMatter AI mark, for light backgrounds</title>
+  <g fill="none" stroke="#2A2722" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M57 13C49 5 35 5 30 13C20 12 12 20 14 30C6 34 5 47 12 53C8 62 15 73 26 73C30 82 44 85 52 78C54 81 57 83 57 83"/>
+    <path d="M63 13C71 5 85 5 90 13C100 12 108 20 106 30C114 34 115 47 108 53C112 62 105 73 94 73C90 82 76 85 68 78C66 81 63 83 63 83"/>
+    <path d="M60 16V80" stroke-width="2.4" stroke-opacity=".35"/>
+    <path d="M26 31C33 26 40 34 48 29" stroke-width="3.4"/>
+    <path d="M20 46C29 41 36 50 47 45" stroke-width="3.4"/>
+    <path d="M29 61C36 57 42 65 50 61" stroke-width="3.4"/>
+  </g>
+  <g stroke="#6A645C" stroke-width="2.6" stroke-linecap="round">
+    <path d="M74 25L92 28M74 25L82 41M92 28L82 41M92 28L99 45M82 41L99 45M82 41L73 57M82 41L91 61M99 45L91 61M73 57L91 61M73 57L81 71M91 61L81 71"/>
+  </g>
+  <g fill="#6A645C">
+    <circle cx="74" cy="25" r="4.4"/><circle cx="92" cy="28" r="4.4"/><circle cx="99" cy="45" r="4.4"/>
+    <circle cx="73" cy="57" r="4.4"/><circle cx="91" cy="61" r="4.4"/><circle cx="81" cy="71" r="4.4"/>
+  </g>
+  <path d="M47 45L82 41" stroke="#FF6A4D" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="82" cy="41" r="7" fill="#FF6A4D"/>
+  <circle cx="47" cy="45" r="3.6" fill="#FF6A4D"/>
+</svg>

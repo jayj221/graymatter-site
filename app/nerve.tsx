@@ -33,6 +33,7 @@ export default function Nerve() {
   const rootGuide = useRef<SVGPathElement>(null);
   const rootLit = useRef<SVGGElement>(null);
   const rootFade = useRef<(SVGLinearGradientElement | null)[]>([]);
+  const tailFade = useRef<(SVGLinearGradientElement | null)[]>([]);
   const sparks = useRef<(SVGGElement | null)[]>([]);
 
   useEffect(() => {
@@ -61,8 +62,12 @@ export default function Nerve() {
       // On tall screens where the whole stem tube hangs below the strip, it runs under the strip instead.
       const below = stemEnd.y > stripBottom - 4;
       const eyebrow = document.querySelector("#platform .eyebrow");
+      // the sweep must never cross the hero's bottom labels: take the lane above them when there is room
+      // between the stem opening and the text, otherwise pass below them
+      const lab = labels ? abs(labels) : { x: 0, y: strip.y, w: 0, h: 0 };
+      const above = lab.y - 46, roomAbove = above - (stemEnd.y + 30);
       const sweep = !below
-        ? (labels ? (abs(labels).y + abs(labels).h + strip.y) / 2 : strip.y - 14)
+        ? (roomAbove >= 0 ? above : Math.min(lab.y + lab.h + 30, strip.y - 8))
         : Math.min(Math.max(stripBottom + 36, stemEnd.y + 18), eyebrow ? abs(eyebrow).y - 26 : Infinity);
       const lineY = below ? sweep + 30 : stripMid;          // where the drawn line begins (hidden behind the strip when above it)
       const landY = below ? sweep + 100 : stripBottom + 70; // where the signal hands over to the line
@@ -182,7 +187,7 @@ export default function Nerve() {
     // the path to just under the industry strip is never drawn as a line: a signal runs it as you scroll, then the line grows from there
     const lineIdx = Math.max(0, samples.findIndex(sm => sm.y >= layout.lineY && sm.x < samples[0].x - 200));
     // the line is anchored behind the strip (hidden by it), and the signal lands a little below it, so the line reads as one piece
-    const lineDepth = samples[lineIdx].depth, lineLen = samples[lineIdx].len, COMET = 110, SIG_FROM = 20, SIG_TO = 280;
+    const lineDepth = samples[lineIdx].depth, lineLen = samples[lineIdx].len, SIG_FROM = 20, SIG_TO = 280;
     const signalIdx = Math.max(lineIdx, samples.findIndex((sm, k) => k > lineIdx && sm.y >= layout.landY));
     const signalDepth = samples[signalIdx].depth, signalLen = samples[signalIdx].len;
     const atLen = (l: number) => samples[Math.max(0, Math.min(samples.length - 1, Math.round(l / 4)))];
@@ -214,62 +219,70 @@ export default function Nerve() {
       return rootGuide.current?.getTotalLength() ?? 0;
     };
     const at = (d: number) => { let k = 0; while (k < samples.length - 1 && samples[k + 1].depth <= d) k++; return samples[k]; };
-    let raf = 0, sig = 0, cur = signalDepth, tail = lineDepth, prevT = performance.now(), time = 0;
+    // ONE number drives everything: q, the distance drawn along the fixed path, in pixels of path
+    // length. Negative q means the tip is still inside the live root, 0 is where the root meets the
+    // fixed path, signalLen is the handover where the signal ends and the line begins, and total is
+    // the logo. The handover never moves, so the line always grows from zero length there and
+    // retracts to zero at the same point before the signal travels back up: no phase to jump.
+    let raf = 0, q = -400, prevT = performance.now(), time = 0;
     const tick = (now: number) => {
       const dt = Math.min((now - prevT) / 1000, .2); prevT = now; time += dt;
       const max = document.documentElement.scrollHeight - innerHeight;
       const endRamp = Math.max(0, Math.min(1, (scrollY - (max - innerHeight)) / innerHeight));
-      // the signal is scrubbed by scroll: the first ~260px carry it from the brain stem to the margin, and back up in reverse
-      const sigTarget = Math.max(0, Math.min(1, (scrollY - SIG_FROM) / (SIG_TO - SIG_FROM)));
-      sig += (sigTarget - sig) * (reduced ? 1 : 1 - Math.exp(-dt * 12));
-      if (Math.abs(sigTarget - sig) < .002) sig = sigTarget;
-      // the tip starts exactly where the signal landed and moves with every pixel of scroll, easing onto the reading line over the first two screens
+      const rootLen = drawRoot();
+
+      // scroll to q: the first ~260px carry the signal out of the stem, then the reading line takes over
       const lead = Math.max(0, signalDepth - (SIG_TO + innerHeight * .55)) * Math.max(0, 1 - (scrollY - SIG_TO) / (innerHeight * 2.2));
       const reach = scrollY + innerHeight * (.55 + .43 * endRamp) + endRamp * (maxDepth - layout.end) + lead;
-      const target = sig < 1 ? signalDepth : Math.max(signalDepth, Math.min(maxDepth, reach));
-      cur += (target - cur) * (reduced ? 1 : 1 - Math.exp(-dt * 12));
-      if (Math.abs(target - cur) < 1.5) cur = target; // easing never lands exactly; snap so the end is reached
-      // the tail follows the reader: nerve scrolled past the top of the view retracts, so only the live part stays
-      const tailTarget = Math.max(lineDepth, Math.min(cur, scrollY + innerHeight * .12));
-      tail += (tailTarget - tail) * (reduced ? 1 : 1 - Math.exp(-dt * 12));
-      let head: Pt, from: number, to: number, rootShown = 0;
-      if (sig < 1) {
-        // one signal over root + fixed path, measured in length so it never jumps where they meet
-        const rootLen = drawRoot(), g = sig * (rootLen + signalLen);
-        const rFrom = Math.max(0, g - COMET), rTo = Math.min(g, rootLen);
-        rootShown = Math.max(0, rTo - rFrom);
-        set(rootLit.current, "display", rootShown > .5 ? "inline" : "none");
-        rootStrokes.forEach(el => { const s = el.getTotalLength() / (rootLen || 1); set(el, "stroke-dasharray", dash(rFrom * s, rTo * s, rootLen * s)); });
-        to = Math.max(0, g - rootLen); from = Math.min(lineLen, Math.max(0, g - rootLen - COMET));
-        head = g <= rootLen ? rootGuide.current!.getPointAtLength(g) : atLen(to);
-      } else {
-        rootStrokes.forEach(el => set(el, "stroke-dasharray", "0 100000"));
-        set(rootLit.current, "display", "none");
-        const h = at(cur); head = h; to = h.len; from = at(tail).len;
-      }
-      const shown = sig > 0 && rootShown + to - from > 1;
-      const fq = Math.round(from), tq = Math.round(to);
-      mainStrokes.forEach(el => set(el, "stroke-dasharray", dash(fq, tq, total)));
-      strandMaps.forEach(({ el, xs, ys }) => set(el, "d", strandD(xs, ys, fq, tq)));
-      beads.forEach(({ el, l }) => set(el, "display", tq - fq > .5 && l >= fq && l <= tq ? "inline" : "none"));
+      const readDepth = Math.max(signalDepth, Math.min(maxDepth, reach));
+      const t = Math.max(0, Math.min(1, (scrollY - SIG_FROM) / (SIG_TO - SIG_FROM)));
+      const target = scrollY <= SIG_TO ? -rootLen + t * (rootLen + signalLen) : Math.max(signalLen, at(readDepth).len);
+      q += (target - q) * (reduced ? 1 : 1 - Math.exp(-dt * 12));
+      if (Math.abs(target - q) < 1) q = target;
+
+      // what is drawn: everything from the stem opening down to the tip, trimmed to at most a screen
+      // and a half behind it. One rule for the whole journey, so the signal grows out of the brain
+      // from nothing exactly as the line does, and shrinks back into it the same way.
+      const to = q;
+      const from = Math.max(-rootLen, q - innerHeight * 1.7);
+      const shown = to > -rootLen && to - from > 1;
+
+      // the root carries whatever part of [from, to] is before 0, the fixed path everything after
+      const rFrom = Math.max(0, Math.min(from + rootLen, rootLen)), rTo = Math.max(0, Math.min(to + rootLen, rootLen));
+      const rootShown = Math.max(0, rTo - rFrom);
+      set(rootLit.current, "display", rootShown > .5 ? "inline" : "none");
+      rootStrokes.forEach(el => {
+        const sc = el.getTotalLength() / (rootLen || 1);
+        set(el, "stroke-dasharray", rootShown > .5 ? dash(rFrom * sc, rTo * sc, rootLen * sc) : "0 100000");
+      });
+      const fq = Math.round(Math.max(0, from)), tq = Math.round(Math.max(0, Math.min(to, total)));
+      const mainShown = tq - fq > .5 && to > 0;
+      mainStrokes.forEach(el => set(el, "stroke-dasharray", mainShown ? dash(fq, tq, total) : "0 100000"));
+      strandMaps.forEach(({ el, xs, ys }) => set(el, "d", mainShown ? strandD(xs, ys, fq, tq) : "M0,0"));
+      beads.forEach(({ el, l }) => set(el, "display", mainShown && l >= fq && l <= tq ? "inline" : "none"));
       set(svgRef.current, "opacity-style", shown ? "1" : "0");
-      // a few sparks run down the lit stretch, the signal travelling through it
+
+      const head: Pt = to <= 0 ? rootGuide.current!.getPointAtLength(Math.max(0, to + rootLen)) : atLen(tq);
+      const tailPt: Pt = from <= 0 ? rootGuide.current!.getPointAtLength(Math.max(0, from + rootLen)) : atLen(fq);
+      // a few sparks run down the drawn stretch once it is long enough to read
       const span = tq - fq;
       sparks.current.forEach((el, k) => {
-        if (!shown || sig < 1 || span < 60 || reduced) { set(el, "opacity", "0"); return; }
-        const pos = fq + (((time * 150 + k * 260) % 780) / 780) * span;
-        const sp = atLen(pos);
+        if (!shown || q <= signalLen || span < 60 || reduced) { set(el, "opacity", "0"); return; }
+        const sp = atLen(fq + (((time * 150 + k * 260) % 780) / 780) * span);
         set(el, "transform", `translate(${sp.x.toFixed(1)} ${sp.y.toFixed(1)})`); set(el, "opacity", ".85");
       });
-      const tailY = sig < 1 ? 1e9 : at(tail).y, clipTop = Math.min(tailY, head.y);
+      // the far end fades rather than stopping on a cut, except while the short signal is travelling
+      const fadeTo = head.y, fadeFrom = from <= -rootLen + 1 ? fadeTo - 6000 : Math.min(tailPt.y - 30, fadeTo - 90);
+      tailFade.current.forEach(g => { set(g, "y1", fadeFrom.toFixed(0)); set(g, "y2", fadeTo.toFixed(0)); });
+      const clipTop = Math.min(tailPt.y, head.y);
       set(lit.ownerSVGElement?.querySelector("#nerve-lit rect"), "y", String(Math.round(clipTop)));
-      set(lit.ownerSVGElement?.querySelector("#nerve-lit rect"), "height", String(sig < 1 ? 0 : Math.max(0, Math.round(head.y - clipTop + 2))));
+      set(lit.ownerSVGElement?.querySelector("#nerve-lit rect"), "height", String(q <= signalLen ? 0 : Math.max(0, Math.round(head.y - clipTop + 2))));
       set(pulse.current, "transform", `translate(${head.x.toFixed(1)} ${head.y.toFixed(1)})`);
-      set(pulse.current, "opacity", shown && to < total - 4 ? "1" : "0");
-      const readY = sig < 1 ? -1 : head.y;
+      set(pulse.current, "opacity", shown && tq < total - 4 ? "1" : "0");
+      const readY = q <= signalLen ? -1 : head.y;
       const active = layout.nodes.reduce((a, n, i) => (n.y <= readY + 1 ? i : a), -1);
-      nodeRefs.current.forEach((n, i) => set(n, "data-state", i > active ? "ahead" : layout.nodes[i].y < tailY ? "gone" : i === active ? "active" : "passed"));
-      const done = sig >= 1 && cur >= maxDepth - 20;
+      nodeRefs.current.forEach((n, i) => set(n, "data-state", i > active ? "ahead" : layout.nodes[i].y < tailPt.y ? "gone" : i === active ? "active" : "passed"));
+      const done = tq >= total - 20;
       if (done !== (document.documentElement.dataset.nerveEnd === "1")) { if (done) document.documentElement.dataset.nerveEnd = "1"; else delete document.documentElement.dataset.nerveEnd; }
       raf = requestAnimationFrame(tick);
     };
@@ -287,6 +300,12 @@ export default function Nerve() {
         {[["fibre", "#e9e2de"], ["aura", "#ff6a4d"], ["core", "#ffb39f"]].map(([name, color], i) => (
           <linearGradient key={name} ref={el => { rootFade.current[i] = el; }} id={`nerve-root-${name}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor={color} stopOpacity="0" /><stop offset="1" stopColor={color} />
+          </linearGradient>
+        ))}
+        {/* the drawn stretch fades in at the end that is retracting, instead of stopping on a cut edge */}
+        {[["fibre", "#e9e2de"], ["aura", "#ff6a4d"], ["core", "#ffb39f"]].map(([name, color], i) => (
+          <linearGradient key={"t" + name} ref={el => { tailFade.current[i] = el; }} id={`nerve-tail-${name}`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={color} stopOpacity="0" /><stop offset=".07" stopColor={color} stopOpacity=".35" /><stop offset=".16" stopColor={color} /><stop offset="1" stopColor={color} />
           </linearGradient>
         ))}
       </defs>

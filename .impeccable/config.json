@@ -11,6 +11,45 @@
         ],
         "createdAt": "2026-09-15T13:36:23.697Z",
         "reason": "Claude: macOS-style dock must animate icon width so neighbours reflow as they magnify; 18 small tiles, rAF-throttled"
+      },
+      {
+        "rule": "side-tab",
+        "value": "border-left:2px solid #ff6a4d",
+        "files": [
+          "app/globals.css"
+        ],
+        "createdAt": "2026-09-16T11:11:24.175Z",
+        "reason": "Claude: quotation rule on a blockquote inside the source card, the conventional way to mark a quoted excerpt"
+      },
+      {
+        "rule": "overused-font",
+        "value": "roboto",
+        "files": [
+          "app/globals.css"
+        ],
+        "createdAt": "2026-09-16T11:30:41.247Z",
+        "reason": "Claude: the Gmail and Google Calendar mockups must use Roboto to read as those apps; the site itself is Sora, Manrope and IBM Plex Mono"
+      },
+      {
+        "rule": "side-tab",
+        "value": "inset 0 -3px 0 #1a73e8",
+        "files": [
+          "app/globals.css"
+        ],
+        "createdAt": "2026-09-16T11:30:41.328Z",
+        "reason": "Claude: Gmail's own underline on the selected inbox tab, part of imitating that interface"
+      },
+      {
+        "rule": "side-tab",
+        "value": "border-left:2px solid #ff6a4d",
+        "createdAt": "2026-09-16T11:38:18.445Z",
+        "reason": "Claude: quotation rule beside the quoted excerpt in each source card; the earlier file-scoped ignore did not match the path the hook reports"
+      },
+      {
+        "rule": "side-tab",
+        "value": "inset 0 -3px 0 #1a73e8",
+        "createdAt": "2026-09-16T11:38:18.524Z",
+        "reason": "Claude: Gmail's own selected-tab underline in the inbox mockup"
       }
     ]
   }

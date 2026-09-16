@@ -10,7 +10,7 @@ const tile = (bg: string, children: ReactNode) => (
 const letter = (bg: string, fg: string, ch: string, size = 30) =>
   tile(bg, <text x="32" y="43" textAnchor="middle" fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" fontSize={size} fill={fg}>{ch}</text>);
 
-const APPS: { name: string; icon: ReactNode }[] = [
+export const APPS: { name: string; icon: ReactNode }[] = [
   { name: "Gmail", icon: tile("#fff", <><path d="M14 22v22h7V30l11 8 11-8v14h7V22l-4-3-14 10-14-10z" fill="#EA4335" /><path d="M14 22v22h7V30z" fill="#4285F4" /><path d="M43 30v14h7V22z" fill="#34A853" /><path d="M50 22l-4-3-3 2v9l7-5z" fill="#FBBC04" /></>) },
   { name: "Outlook", icon: tile("#0A64D0", <><rect x="30" y="18" width="22" height="28" rx="3" fill="#50A5F5" /><rect x="12" y="20" width="26" height="24" rx="4" fill="#0F4FA8" /><ellipse cx="25" cy="32" rx="6.5" ry="8" fill="none" stroke="#fff" strokeWidth="3.5" /></>) },
   { name: "Microsoft Teams", icon: tile("#4B53BC", <><circle cx="45" cy="21" r="5" fill="#9EA3F2" /><rect x="38" y="28" width="16" height="18" rx="6" fill="#7B83EB" /><rect x="11" y="18" width="28" height="28" rx="4" fill="#3D43A8" /><path d="M18 25h14v4h-5v12h-4V29h-5z" fill="#fff" /></>) },
@@ -91,6 +91,12 @@ function Dock() {
 }
 
 /* ---------------- inbox triage loop ---------------- */
+const MAIL_META = [
+  { who: "RN", colour: "#1a73e8", time: "9:04 AM" },
+  { who: "SD", colour: "#c5221f", time: "8:41 AM" },
+  { who: "PM", colour: "#188038", time: "8:12 AM" },
+  { who: "VN", colour: "#8430ce", time: "7:58 AM" },
+];
 const MAILS = [
   { from: "Rakesh Nair, CFO · Northline", subject: "Board pack figures needed by Thursday", tag: "Priority", action: "Draft ready: figures attached from Q2 model" },
   { from: "SEBI circular digest", subject: "Amendments to investment adviser rules", tag: "Action", action: "Summarised · 3 clients affected" },
@@ -111,14 +117,32 @@ function useTicker(n: number, ms: number) {
 function Inbox() {
   const step = useTicker(MAILS.length, 1500);
   return (
-    <div className="wd-card inbox">
-      <div className="wd-head"><Mail size={16} /> Inbox · triaged by GrayMatter <span>Today</span></div>
-      <ul>
+    <div className="wd-card gmail">
+      <div className="app-chrome"><span className="ac-dots"><i /><i /><i /></span><span className="ac-url">mail.google.com</span></div>
+      <div className="gmail-top">
+        <span className="gm-burger" aria-hidden="true"><i /><i /><i /></span>
+        <svg viewBox="0 0 64 48" className="gmail-logo" aria-hidden="true"><path d="M4 12v28h9V22l19 14 19-14v18h9V12l-7-5-21 15L11 7z" fill="#EA4335" /><path d="M4 12v28h9V22z" fill="#4285F4" /><path d="M51 22v18h9V12z" fill="#34A853" /><path d="M60 12l-7-5-2 2v13l9-7z" fill="#FBBC04" /></svg>
+        <div className="gmail-search">Search mail</div>
+        <span className="gmail-avatar">PS</span>
+      </div>
+      <div className="gmail-tabs"><span className="on">Primary</span><span>Promotions</span><span>Updates</span></div>
+      <ul className="gmail-list">
         {MAILS.map((m, i) => (
           <li key={m.subject} className={step >= i ? "in" : ""} style={{ transitionDelay: `${i * 40}ms` }}>
-            <div className="row1"><b>{m.from}</b><span className={"mtag " + m.tag.toLowerCase()}>{m.tag === "Priority" && <Star size={11} />}{m.tag}</span></div>
-            <p>{m.subject}</p>
-            <small className={step >= i + 1 ? "done" : ""}>{m.action.startsWith("Draft") ? <PenLine size={12} /> : m.action.startsWith("Reply") ? <Clock3 size={12} /> : <Check size={12} />}{m.action}</small>
+            <span className="gl-star" aria-hidden="true"><Star size={13} /></span>
+            <span className="gl-av" style={{ background: MAIL_META[i].colour }}>{MAIL_META[i].who}</span>
+            <div className="gl-body">
+              <div className="gl-row">
+                <b>{m.from}</b>
+                <span className={"mtag " + m.tag.toLowerCase()}>{m.tag}</span>
+                <span className="gl-time">{MAIL_META[i].time}</span>
+              </div>
+              <p><b>{m.subject}</b></p>
+              <small className={step >= i + 1 ? "done" : ""}>
+                {m.action.startsWith("Draft") ? <PenLine size={12} /> : m.action.startsWith("Reply") ? <Clock3 size={12} /> : <Check size={12} />}
+                {m.action}
+              </small>
+            </div>
           </li>
         ))}
       </ul>
@@ -137,23 +161,34 @@ const EVENTS: { d: number; s: number; h: number; t: string; c: string; clash?: b
   { d: 4, s: 1, h: 1, t: "Team sync", c: "ev-indigo" },
 ];
 
+const HOURS = ["9 AM", "10 AM", "11 AM", "12 PM", "1 PM"];
+const DATES = [15, 16, 17, 18, 19];
+
 function Calendar() {
   const step = useTicker(EVENTS.length + 2, 1300);
   const moved = step >= EVENTS.length;
   const reminder = step >= EVENTS.length + 1;
   return (
-    <div className="wd-card calendar">
-      <div className="wd-head"><CalendarClock size={16} /> Week of 15 September <span>Synced</span></div>
+    <div className="wd-card gcal">
+      <div className="app-chrome"><span className="ac-dots"><i /><i /><i /></span><span className="ac-url">calendar.google.com</span></div>
+      <div className="gcal-top">
+        <svg viewBox="0 0 48 48" className="gcal-logo" aria-hidden="true"><rect x="6" y="8" width="36" height="34" rx="5" fill="#fff" stroke="#4285F4" strokeWidth="3" /><rect x="6" y="8" width="36" height="8" fill="#4285F4" /><text x="24" y="36" textAnchor="middle" fontFamily="Arial" fontWeight="700" fontSize="15" fill="#1967D2">31</text></svg>
+        <b>September 2026</b>
+        <span className="gcal-view">Week</span>
+        <span className="gcal-sync">Synced with GrayMatter</span>
+      </div>
       <div className="cal">
+        <div className="cal-gutter">{HOURS.map(h => <span key={h}>{h}</span>)}</div>
         {DAYS.map((d, di) => (
           <div key={d} className="cal-day">
-            <span className="cal-label">{d}</span>
+            <span className="cal-label">{d}<b className={di === 3 ? "today" : ""}>{DATES[di]}</b></span>
             <div className="cal-col">
+              {HOURS.map((h, hi) => <i key={h} className="cal-line" style={{ top: `${hi * 20}%` }} />)}
               {EVENTS.map((e, i) => {
                 const clash = !!e.clash;
-                const s = clash && moved ? 1 : e.s;
+                const s2 = clash && moved ? 1 : e.s;
                 return e.d === di ? (
-                  <div key={e.t} className={`ev ${e.c} ${step >= i ? "in" : ""} ${clash && moved ? "moved" : ""}`} style={{ top: `${s * 20 + 2}%`, height: `${e.h * 20 - 4}%` }}>
+                  <div key={e.t} className={`ev ${e.c} ${step >= i ? "in" : ""} ${clash && moved ? "moved" : ""}`} style={{ top: `${s2 * 20 + 1}%`, height: `${e.h * 20 - 3}%` }}>
                     {e.t}{clash && <em>{moved ? "Moved to 10:00" : "Clashes with review"}</em>}
                   </div>
                 ) : null;

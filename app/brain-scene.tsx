@@ -42,6 +42,8 @@ export default function BrainScene({ background = false }: { background?: boolea
         uMap: { value: texture }, uTime: { value: 0 }, uExplode: { value: 0 }, uHover: { value: 0 },
         uPointer: { value: new THREE.Vector2(99, 99) }, uPixel: { value: Math.min(devicePixelRatio, 1.75) },
         uRipple: { value: new THREE.Vector2(99, 99) }, uBulb: { value: 0 }, uRippleT: { value: 9 }, uRadius: { value: RADIUS }, uSize: { value: SIZE },
+        uLight: { value: 0 },   // 1 when the page behind the brain is light
+        uAccent: { value: new THREE.Color(1, .43, .22) },   // the palette's accent, so the fibres match the site
       };
 
       const brain = new THREE.Group();
@@ -99,7 +101,8 @@ export default function BrainScene({ background = false }: { background?: boolea
           }`,
         fragmentShader: `
           precision highp float;
-          uniform sampler2D uMap; uniform float uBulb, uTime, uHover, uExplode, uRippleT, uRadius, uSize;
+          uniform sampler2D uMap; uniform float uBulb, uTime, uHover, uExplode, uRippleT, uRadius, uSize, uLight;
+          uniform vec3 uAccent;
           uniform vec2 uPointer, uRipple;
           varying vec2 vUv; varying float vRim;
           float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -125,21 +128,30 @@ export default function BrainScene({ background = false }: { background?: boolea
             float twinkle = .5 + .5 * sin(uTime * (1.5 + hash(cell) * 4.0) + hash(cell + 7.) * 6.283);
             float synapse = smoothstep(.72, .95, lum) * fibre;
 
-            vec3 glow = vec3(1., .43, .22);
+            vec3 glow = uAccent;
+            vec3 hot = mix(uAccent, vec3(1.), .45);        // the brighter core of a lit fibre
             vec3 col = c * (.88 + .12 * sin(uTime * .5));
             col += glow * fibre * (w1 * 1.25 + w2 * .7);
-            col += vec3(1., .82, .72) * synapse * twinkle * .75;
+            col += hot * synapse * twinkle * .75;
+            // on a light page the same brain is drawn in ink, with its fibres and synapses still lit
+            vec3 ink = mix(vec3(.60, .61, .66), vec3(.09, .10, .13), smoothstep(.06, .72, lum));
+            vec3 light = mix(ink, uAccent, clamp(fibre * .92, 0., 1.));
+            light = mix(light, mix(uAccent, vec3(1.), .3), clamp(fibre * (w1 * 1.1 + w2 * .6), 0., 1.));
+            light = mix(light, hot, synapse * twinkle * .85);
+            col = mix(col, light, uLight);
             // a hot rim where the glass is breaking apart, and a flash as the ripple passes
             float rim = uHover * exp(-pow((dist - uRadius * .75) / .09, 2.0));
-            col += glow * (rim * .9 + ring * 1.4) * smoothstep(.04, .2, lum);
+            float flash = (rim * .9 + ring * 1.4) * smoothstep(.04, .2, lum);
+            col = mix(col + glow * flash, mix(col, glow, clamp(flash, 0., 1.)), uLight);
 
-            col += vec3(.75, .8, .9) * pow(vRim, 3.0) * .35 * smoothstep(.03, .12, lum);
+            float sheen = pow(vRim, 3.0) * .35 * smoothstep(.03, .12, lum);
+            col = mix(col + vec3(.75, .8, .9) * sheen, mix(col, vec3(.5, .53, .6), sheen), uLight);
             float alpha = smoothstep(.035, .14, lum + fibre * .25);
             alpha *= 1.0 - near * .7;                                 // the glass opens under the cursor
             alpha *= 1.0 - ring * .7;
             // the burst: fibres flare as the brain swells, then the glass cracks away in pieces (its particles carry on)
             float flare = smoothstep(.0, .22, uExplode) * (1.0 - smoothstep(.3, .5, uExplode));
-            col += glow * fibre * flare * 1.1 + c * flare * .25;
+            col = mix(col + glow * fibre * flare * 1.1 + c * flare * .25, mix(col, glow, clamp(fibre * flare * 1.2, 0., 1.)), uLight);
             float crack = smoothstep(.24, .5, uExplode);
             alpha *= smoothstep(crack - .1, crack + .02, noise(vUv * 26.0) * .75 + (1.0 - length(vUv - .5) * 1.4) * .25);
             alpha *= 1.0 - smoothstep(.02, .25, uBulb);
@@ -205,7 +217,8 @@ export default function BrainScene({ background = false }: { background?: boolea
         transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms,
         vertexShader: `
           attribute vec3 aColor; attribute vec3 aRandom; attribute vec3 aBulb;
-          uniform float uBulb, uExplode, uTime, uPixel, uHover, uRadius, uRippleT;
+          uniform float uBulb, uExplode, uTime, uPixel, uHover, uRadius, uRippleT, uLight;
+          uniform vec3 uAccent;
           uniform vec2 uPointer, uRipple;
           varying vec3 vColor; varying float vAlpha, vShard, vAngle;
           void main(){
@@ -240,7 +253,9 @@ export default function BrainScene({ background = false }: { background?: boolea
             float shard = clamp(max(max(near, ring * 1.4), max(smoothstep(.1, .6, q) * step(.55, aRandom.z) * .8, uBulb * .8)), 0., 1.);
             vShard = shard;
             gl_PointSize = (1.6 + aRandom.x * 2.2) * (1.0 + max(max(near, ring), qe * .7)) * uPixel * 4.6 / max(.5, -mv.z);
-            vColor = mix(aColor * 1.3, vec3(1., .62, .45) + aColor * .6, shard * .55);
+            float inkLum = dot(aColor, vec3(.299, .587, .114));
+            vec3 onLight = mix(mix(vec3(.55, .56, .62), vec3(.12, .13, .17), smoothstep(.1, .7, inkLum)), uAccent, shard * .75);
+            vColor = mix(mix(aColor * 1.3, mix(uAccent, vec3(1.), .25) + aColor * .6, shard * .55), onLight, uLight);
             // particles light up exactly as the glass cracks, so the brain turns into them, then thin out as they travel
             float burstA = smoothstep(.2, .34, uExplode) * (1.0 - q * q) * 1.4;
             vAlpha = max(max(burstA, smoothstep(.02, .25, uBulb) * .38), max(near * .8, ring * 1.2)) * (.5 + aRandom.y * .4);
@@ -372,8 +387,9 @@ export default function BrainScene({ background = false }: { background?: boolea
         if (!mobileView) {
           Object.assign(goal, {
             x: 1.25, z: 5.3,
-            // drift up at half the scroll speed, so the burst stays on screen long enough to be seen
-            y: (hr ? Math.min(-hr.top, 0) + Math.max(0, -hr.top) * .5 : 0) / innerHeight * 2 * 5.3 * Math.tan(20 * Math.PI / 180),
+            // sits a little higher than centre, so the stem opening clears the hero labels and the nerve has room to leave it;
+            // drifts up at half the scroll speed, so the burst stays on screen long enough to be seen
+            y: .52 + (hr ? Math.min(-hr.top, 0) + Math.max(0, -hr.top) * .5 : 0) / innerHeight * 2 * 5.3 * Math.tan(20 * Math.PI / 180),
             explode: b, ...burstLook(b), tilt: 0, bulb: 0,
           });
           return;
@@ -388,6 +404,36 @@ export default function BrainScene({ background = false }: { background?: boolea
       window.addEventListener("scroll", plan, { passive: true });
       window.addEventListener("resize", plan);
       plan();
+
+      // watch the page behind the brain: a light palette flips the whole rendering to ink
+      const readPage = () => {
+        const styles = getComputedStyle(document.documentElement);
+        const bg = getComputedStyle(document.body).backgroundColor.match(/[\d.]+/g) || ["0", "0", "0"];
+        const [br, bgc, bb] = bg.slice(0, 3).map(Number).map(v => v / 255);
+        const light = .2126 * br + .7152 * bgc + .0722 * bb > .45 ? 1 : 0;
+
+        // a palette can hand the brain its own accent, so our coral can stay on the artwork
+        const accent = (styles.getPropertyValue("--brain-accent") || styles.getPropertyValue("--primary")).trim();
+        if (/^#[0-9a-fA-F]{6}$/.test(accent)) {
+          const c = new THREE.Color(accent), hsl = { h: 0, s: 0, l: 0 };
+          c.getHSL(hsl);
+          // lit fibres need to carry against what is behind them: vivid on a dark page,
+          // a touch deeper and calmer on a light one so they never glare
+          c.setHSL(hsl.h, light ? Math.min(hsl.s, .58) : Math.max(hsl.s, .62), light ? Math.min(Math.max(hsl.l, .46), .58) : Math.max(hsl.l, .5));
+          uniforms.uAccent.value.copy(c);
+        }
+
+        if (uniforms.uLight.value === light) return;   // the rest only changes when the page flips
+        uniforms.uLight.value = light;
+        pointsMaterial.blending = light ? THREE.NormalBlending : THREE.AdditiveBlending;
+        pointsMaterial.needsUpdate = true;
+        dustMaterial.color.set(light ? 0x8a7d78 : 0xd9a08a);
+        dustMaterial.opacity = light ? .16 : .32;
+        shardMats.forEach(m => { m.blending = light ? THREE.NormalBlending : THREE.AdditiveBlending; m.needsUpdate = true; });
+      };
+      readPage();
+      const themeWatch = new MutationObserver(() => setTimeout(readPage, 60));
+      themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
       const contextLost = (event: Event) => { event.preventDefault(); setFailed(true); };
       renderer.domElement.addEventListener("webglcontextlost", contextLost);
@@ -472,7 +518,7 @@ export default function BrainScene({ background = false }: { background?: boolea
       cleanup = () => {
         cancelAnimationFrame(frame);
         window.removeEventListener("scroll", plan); window.removeEventListener("resize", plan);
-        observer.disconnect(); visibility.disconnect();
+        observer.disconnect(); visibility.disconnect(); themeWatch.disconnect();
         motion.removeEventListener("change", motionChange);
         moveTarget.removeEventListener("pointermove", onMove as EventListener);
         downTarget.removeEventListener("pointerdown", onDown as EventListener);
