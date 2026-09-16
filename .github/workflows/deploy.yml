@@ -32,6 +32,9 @@ jobs:
           VITE_SUPABASE_KEY: ${{ secrets.VITE_SUPABASE_KEY }}
       # every unknown path serves the same app, so /thank-you?ref=… works as a direct link
       - run: cp dist-static/index.html dist-static/404.html
+      # and the real routes get their own file, so they answer 200 rather than 404
+      - run: |
+          for route in agents thank-you; do mkdir -p "dist-static/$route" && cp dist-static/index.html "dist-static/$route/index.html"; done
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist-static
