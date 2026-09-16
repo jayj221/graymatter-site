@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "app/globals.css"
+        ],
+        "createdAt": "2026-09-15T13:36:23.697Z",
+        "reason": "Claude: macOS-style dock must animate icon width so neighbours reflow as they magnify; 18 small tiles, rAF-throttled"
+      }
+    ]
+  }
+}
