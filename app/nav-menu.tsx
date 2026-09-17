@@ -78,7 +78,7 @@ export default function NavMenu({ current }: { current?: "assistant" | "agents" 
             ))}
           </ul>
           <a className="nm-cta" href="/#contact">
-            <span><b>See it on your own files</b><small>A two-week pilot on one practice area.</small></span>
+            <span><b>See it on your own files</b><small>An eight-week pilot on one recurring document.</small></span>
             <ArrowRight size={15} />
           </a>
         </div>
