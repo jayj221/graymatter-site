@@ -303,7 +303,7 @@ export default function BrainScene({ background = false }: { background?: boolea
       let active = true, frame = 0, last = 0, time = 0, px = 0, py = 0, tx = 0, ty = 0, hoverZoom = 0;
       let pointerInside = false, dragging = false, dragX = 0, dragY = 0, spinY = 0, spinX = 0, velY = 0, velX = 0;
       // choreography state, eased every frame
-      const cur = { x: 1.25, y: 0, z: 7.05, explode: 0, opacity: 1, scale: 1, tilt: 0, bulb: 0, shards: 0 };
+      const cur = { x: 2, y: .485, z: 7.05, explode: 0, opacity: 1, scale: 1, tilt: 0, bulb: 0, shards: 0 };
       const goal = { ...cur };
       const motion = matchMedia("(prefers-reduced-motion: reduce)");
       let reduced = motion.matches;
@@ -386,19 +386,19 @@ export default function BrainScene({ background = false }: { background?: boolea
         burstMode = !mobileView;
         if (!mobileView) {
           Object.assign(goal, {
-            x: 1.25, z: 7.05,
-            // centred on the hero copy rather than lifted above it; the nerve tracks the stem
-            // opening live, so it follows. Drifts up at half the scroll speed so the burst stays
-            // on screen long enough to be seen.
-            y: (hr ? Math.min(-hr.top, 0) + Math.max(0, -hr.top) * .5 : 0) / innerHeight * 2 * 7.05 * Math.tan(20 * Math.PI / 180),
+            x: 2, z: 7.05,
+            // x=2 clears the hero copy, which ends around 784px of 1440; y=.485 centres the brain
+            // on the eyebrow-to-intro block, whose midpoint measures 365px against a 450px
+            // viewport centre. Drifts up at half the scroll speed so the burst stays on screen.
+            y: .485 + (hr ? Math.min(-hr.top, 0) + Math.max(0, -hr.top) * .5 : 0) / innerHeight * 2 * 7.05 * Math.tan(20 * Math.PI / 180),
             explode: b, ...burstLook(b), tilt: 0, bulb: 0,
           });
           return;
         }
         Object.assign(goal, {
-          x: mobileView ? 0 : 1.25, z: mobileView ? 8.25 : 7.05,
+          x: mobileView ? 0 : 2, z: mobileView ? 8.25 : 7.05,
           // scroll up with the hero instead of hanging fixed over the next section
-          y: (hr ? -hr.top : 0) / innerHeight * 2 * (mobileView ? 8.25 : 7.05) * Math.tan(20 * Math.PI / 180),
+          y: (mobileView ? .2 : .485) + (hr ? -hr.top : 0) / innerHeight * 2 * (mobileView ? 8.25 : 7.05) * Math.tan(20 * Math.PI / 180),
           explode: Math.min(.3, out * .45), opacity: e, scale: 1 + out * .08, tilt: 0, bulb: 0, shards: e * .6,
         });
       };
