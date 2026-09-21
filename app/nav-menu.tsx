@@ -39,7 +39,13 @@ export default function NavMenu({ current }: { current?: "assistant" | "agents" 
   // rather than closing the moment the pointer wanders off it
   const [pinned, setPinned] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
-  const shut = () => { setPinned(false); setOpen(false); };
+  // Closing on mouseleave alone loses the menu the moment the pointer cuts a corner
+  // on its way to an item. Hold it briefly and cancel if the pointer comes back.
+  const closeTimer = useRef<number | undefined>(undefined);
+  const cancelClose = () => { clearTimeout(closeTimer.current); closeTimer.current = undefined; };
+  const shut = () => { cancelClose(); setPinned(false); setOpen(false); };
+
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
 
   useEffect(() => {
     if (!open) return;
@@ -51,7 +57,12 @@ export default function NavMenu({ current }: { current?: "assistant" | "agents" 
 
   return (
     <div className={"nm" + (open ? " open" : "")} ref={wrap}
-      onMouseEnter={() => setOpen(true)} onMouseLeave={() => { if (!pinned) setOpen(false); }}>
+      onMouseEnter={() => { cancelClose(); setOpen(true); }}
+      onMouseLeave={() => {
+        if (pinned) return;
+        cancelClose();
+        closeTimer.current = window.setTimeout(() => setOpen(false), 220);
+      }}>
       <button type="button" className="nm-trigger" aria-expanded={open}
         onClick={() => { if (pinned) shut(); else { setPinned(true); setOpen(true); } }}>
         Product <ChevronDown size={14} />

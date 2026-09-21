@@ -843,6 +843,9 @@ footer .brand span{transition:color .4s ease}
 /* the panel is glass: the page blurs through it, with two soft lights drifting behind the content */
 .nm-panel{position:absolute;left:50%;top:calc(100% + 14px);transform:translate(-50%,10px) scale(.985);width:min(980px,92vw);display:grid;grid-template-columns:280px 1fr;gap:0;background:linear-gradient(180deg,#191a26,#0f1017);backdrop-filter:blur(30px) saturate(160%);-webkit-backdrop-filter:blur(30px) saturate(160%);border:1px solid #ffffff16;border-radius:18px;box-shadow:0 50px 110px -35px #000000d9,0 12px 40px -18px #0000009c,inset 0 1px 0 #ffffff1a;opacity:0;pointer-events:none;transition:opacity .22s ease,transform .4s cubic-bezier(.22,1,.36,1);z-index:40;isolation:isolate}
 .nm.open .nm-panel{opacity:1;transform:translate(-50%,0) scale(1);pointer-events:auto}
+/* the panel sits 14px below the trigger; without this bridge the pointer crosses dead
+   space on its way down, .nm gets a mouseleave, and the menu shuts before you arrive */
+.nm-panel::after{content:"";position:absolute;left:0;right:0;top:-18px;height:18px}
 .nm-panel::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;opacity:0;transition:opacity .55s ease .08s;background:radial-gradient(460px 220px at 16% -8%,#ff6a4d2e,transparent 68%),radial-gradient(420px 230px at 84% -10%,#12857a2b,transparent 68%),radial-gradient(520px 260px at 50% 118%,#ff6a4d12,transparent 70%)}
 .nm.open .nm-panel::before{opacity:1;animation:nm-drift 14s ease-in-out infinite alternate}
 @keyframes nm-drift{to{transform:translate3d(14px,-6px,0) scale(1.04)}}
