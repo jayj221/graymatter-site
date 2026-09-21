@@ -29,7 +29,7 @@ export default function BrainScene({ background = false }: { background?: boolea
       container.appendChild(renderer.domElement);
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(40, 1, .1, 60);
-      camera.position.z = 4.9;
+      camera.position.z = 6.5;
       const mobile = matchMedia("(max-width: 760px)").matches;
       const SIZE = 3.3, RADIUS = .4;
 
@@ -303,7 +303,7 @@ export default function BrainScene({ background = false }: { background?: boolea
       let active = true, frame = 0, last = 0, time = 0, px = 0, py = 0, tx = 0, ty = 0, hoverZoom = 0;
       let pointerInside = false, dragging = false, dragX = 0, dragY = 0, spinY = 0, spinX = 0, velY = 0, velX = 0;
       // choreography state, eased every frame
-      const cur = { x: 1.25, y: 0, z: 5.3, explode: 0, opacity: 1, scale: 1, tilt: 0, bulb: 0, shards: 0 };
+      const cur = { x: 1.25, y: 0, z: 7.05, explode: 0, opacity: 1, scale: 1, tilt: 0, bulb: 0, shards: 0 };
       const goal = { ...cur };
       const motion = matchMedia("(prefers-reduced-motion: reduce)");
       let reduced = motion.matches;
@@ -364,7 +364,7 @@ export default function BrainScene({ background = false }: { background?: boolea
           const hero = container.closest(".hero");
           const r = hero?.getBoundingClientRect();
           const pr = r ? Math.max(0, Math.min(1, -r.top / (r.height * .65))) : 0;
-          Object.assign(goal, { x: 0, y: 0, z: 4.9 - pr * 2.3, explode: pr * .55, opacity: 1, scale: 1, tilt: 0, bulb: 0, shards: .6 });
+          Object.assign(goal, { x: 0, y: 0, z: 6.5 - pr * 2.3, explode: pr * .55, opacity: 1, scale: 1, tilt: 0, bulb: 0, shards: .6 });
           return;
         }
         const heroEl = document.querySelector(".hero");
@@ -386,18 +386,19 @@ export default function BrainScene({ background = false }: { background?: boolea
         burstMode = !mobileView;
         if (!mobileView) {
           Object.assign(goal, {
-            x: 1.25, z: 5.3,
-            // sits a little higher than centre, so the stem opening clears the hero labels and the nerve has room to leave it;
-            // drifts up at half the scroll speed, so the burst stays on screen long enough to be seen
-            y: .52 + (hr ? Math.min(-hr.top, 0) + Math.max(0, -hr.top) * .5 : 0) / innerHeight * 2 * 5.3 * Math.tan(20 * Math.PI / 180),
+            x: 1.25, z: 7.05,
+            // centred on the hero copy rather than lifted above it; the nerve tracks the stem
+            // opening live, so it follows. Drifts up at half the scroll speed so the burst stays
+            // on screen long enough to be seen.
+            y: (hr ? Math.min(-hr.top, 0) + Math.max(0, -hr.top) * .5 : 0) / innerHeight * 2 * 7.05 * Math.tan(20 * Math.PI / 180),
             explode: b, ...burstLook(b), tilt: 0, bulb: 0,
           });
           return;
         }
         Object.assign(goal, {
-          x: mobileView ? 0 : 1.25, z: mobileView ? 6.2 : 5.3,
+          x: mobileView ? 0 : 1.25, z: mobileView ? 8.25 : 7.05,
           // scroll up with the hero instead of hanging fixed over the next section
-          y: (mobileView ? .2 : 0) + (hr ? -hr.top : 0) / innerHeight * 2 * (mobileView ? 6.2 : 5.3) * Math.tan(20 * Math.PI / 180),
+          y: (hr ? -hr.top : 0) / innerHeight * 2 * (mobileView ? 8.25 : 7.05) * Math.tan(20 * Math.PI / 180),
           explode: Math.min(.3, out * .45), opacity: e, scale: 1 + out * .08, tilt: 0, bulb: 0, shards: e * .6,
         });
       };
