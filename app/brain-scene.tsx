@@ -23,8 +23,15 @@ export default function BrainScene({ background = false }: { background?: boolea
       await image.decode();
       if (stopped) return;
 
-      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
-      renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+      // A phone runs this shader over a full-viewport canvas, and it is the first thing
+      // a visitor meets, so the cost lands before anything has earned it. A 3x phone
+      // ships ~2.3x the fragments of a 2x laptop for a brain drawn a third the size:
+      // capping the ratio is invisible against the glow and buys back the frame budget.
+      // Antialiasing goes with it — the mask already feathers every edge that shows.
+      const phone = innerWidth < 760;
+      const ratio = Math.min(devicePixelRatio, phone ? 1.25 : 1.75);
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !phone, powerPreference: "high-performance" });
+      renderer.setPixelRatio(ratio);
       renderer.setClearColor(0x0b0c12, 0);
       container.appendChild(renderer.domElement);
       const scene = new THREE.Scene();
@@ -40,7 +47,11 @@ export default function BrainScene({ background = false }: { background?: boolea
 
       const uniforms = {
         uMap: { value: texture }, uTime: { value: 0 }, uExplode: { value: 0 }, uHover: { value: 0 },
-        uPointer: { value: new THREE.Vector2(99, 99) }, uPixel: { value: Math.min(devicePixelRatio, 1.75) },
+        // How far the burst throws its particles. The distances below were chosen against a
+        // full-viewport canvas; in the phone's 300px box the same throw puts most of the
+        // shards outside the frame, so the burst reads as the brain simply vanishing.
+        uSpread: { value: 1 },
+        uPointer: { value: new THREE.Vector2(99, 99) }, uPixel: { value: ratio },
         uRipple: { value: new THREE.Vector2(99, 99) }, uBulb: { value: 0 }, uRippleT: { value: 9 }, uRadius: { value: RADIUS }, uSize: { value: SIZE },
         uLight: { value: 0 },   // 1 when the page behind the brain is light
         uAccent: { value: new THREE.Color(1, .43, .22) },   // the palette's accent, so the fibres match the site
@@ -217,7 +228,7 @@ export default function BrainScene({ background = false }: { background?: boolea
         transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms,
         vertexShader: `
           attribute vec3 aColor; attribute vec3 aRandom; attribute vec3 aBulb;
-          uniform float uBulb, uExplode, uTime, uPixel, uHover, uRadius, uRippleT, uLight;
+          uniform float uBulb, uExplode, uTime, uPixel, uHover, uRadius, uRippleT, uLight, uSpread;
           uniform vec3 uAccent;
           uniform vec2 uPointer, uRipple;
           varying vec3 vColor; varying float vAlpha, vShard, vAngle;
@@ -246,8 +257,8 @@ export default function BrainScene({ background = false }: { background?: boolea
             float q = clamp((uExplode - .24 - aRandom.x * .1) / .66, 0., 1.);
             float qe = 1.0 - pow(1.0 - q, 3.0);
             vec3 dir = normalize(vec3(p.xy - vec2(.05, .15), .55) + (aRandom - .5) * .5);
-            p += dir * qe * (.7 + aRandom.y * 2.4);
-            p += vec3(sin(uTime * .7 + aRandom.y * 30.), cos(uTime * .6 + aRandom.z * 30.), 0.) * qe * .06;
+            p += dir * qe * (.7 + aRandom.y * 2.4) * uSpread;
+            p += vec3(sin(uTime * .7 + aRandom.y * 30.), cos(uTime * .6 + aRandom.z * 30.), 0.) * qe * .06 * uSpread;
             vec4 mv = modelViewMatrix * vec4(p, 1.0);
             gl_Position = projectionMatrix * mv;
             float shard = clamp(max(max(near, ring * 1.4), max(smoothstep(.1, .6, q) * step(.55, aRandom.z) * .8, uBulb * .8)), 0., 1.);
@@ -309,7 +320,11 @@ export default function BrainScene({ background = false }: { background?: boolea
       let reduced = motion.matches;
       const resize = () => { const w = container.clientWidth, h = container.clientHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); };
       const observer = new ResizeObserver(resize); observer.observe(container); resize();
-      const visibility = new IntersectionObserver(([entry]) => { active = background || entry.isIntersecting; }); visibility.observe(container);
+      // On a phone the brain is contained in its own box rather than pinned behind the page,
+      // so intersection is the truth there and the loop can stop once the box is gone.
+      const visibility = new IntersectionObserver(([entry]) => {
+        active = entry.isIntersecting || (background && innerWidth >= 760);
+      }); visibility.observe(container);
 
       // don't steal clicks, drags or text selection from real content
       const blocked = (t: EventTarget | null) => !!(t as Element | null)?.closest?.("a,button,input,textarea,select,label,summary,[role=tab],[role=button],[role=option],.demo,.contact-card,.pricing-grid,.wd-card,.dock,p,h1,h2,h3,h4,li");
@@ -352,6 +367,9 @@ export default function BrainScene({ background = false }: { background?: boolea
 
       // the look that follows from how far the burst has got: swell, fade-out at the end, background shards
       let burstMode = false;
+      // true only for the pinned full-viewport layer: the strip clip below measures against
+      // the viewport, which is meaningless once the canvas lives inside its own box.
+      let pinned = false;
       const CRACKED = 320;
       const burstLook = (b: number) => {
         const swell = Math.min(1, b / .25), gone = Math.max(0, (b - .85) / .15);
@@ -383,7 +401,7 @@ export default function BrainScene({ background = false }: { background?: boolea
         const b = scrollY < CRACKED
           ? Math.sqrt(Math.max(0, scrollY / CRACKED)) * .6
           : .6 + .4 * Math.min(1, (scrollY - CRACKED) / (flightEnd - CRACKED));
-        burstMode = !mobileView;
+        burstMode = true;
         if (!mobileView) {
           Object.assign(goal, {
             x: 2, z: 7.05,
@@ -395,11 +413,23 @@ export default function BrainScene({ background = false }: { background?: boolea
           });
           return;
         }
+        // Below 900 the canvas sits inside .particle-brain, under the copy, and scrolls with
+        // it. The drift that carried the brain up the viewport belongs to the pinned desktop
+        // layer; applied here it walked the brain through the hero paragraph and took the
+        // body text down to roughly 2:1 against its own glow. Hold it centred in its box.
+        pinned = background && !mobileView;
+
+        // The burst is scrubbed by the box's own climb rather than by scrollY, because here the
+        // brain travels with the page instead of hanging still behind it. p is 0 as the box sits
+        // in the hero and 1 once it has cleared the top edge, so the glass finishes cracking at
+        // the moment the brain leaves rather than halfway up the next section.
+        const cr = container.getBoundingClientRect();
+        const climb = (vh - cr.top) / (cr.height + vh);
+        const mb = Math.max(0, Math.min(1, (climb - .22) / .6));
+
         Object.assign(goal, {
-          x: mobileView ? 0 : 2, z: mobileView ? 8.25 : 7.05,
-          // scroll up with the hero instead of hanging fixed over the next section
-          y: (mobileView ? .2 : .485) + (hr ? -hr.top : 0) / innerHeight * 2 * (mobileView ? 8.25 : 7.05) * Math.tan(20 * Math.PI / 180),
-          explode: Math.min(.3, out * .45), opacity: e, scale: 1 + out * .08, tilt: 0, bulb: 0, shards: e * .6,
+          x: 0, z: 7.4, y: 0,
+          explode: mb, ...burstLook(mb), tilt: 0, bulb: 0,
         });
       };
       window.addEventListener("scroll", plan, { passive: true });
@@ -458,16 +488,24 @@ export default function BrainScene({ background = false }: { background?: boolea
         const explodeWas = cur.explode;
         (Object.keys(cur) as (keyof typeof cur)[]).forEach(key => { cur[key] += (goal[key] - cur[key]) * (background && key !== "x" && key !== "z" ? kScroll : k); });
         if (burstMode) {
-          // A fast flick must not skip the show: going forward the burst plays at most this fast (whole thing ~1.1s),
-          // then keeps playing on its own behind the page. Scrolling back up still reassembles at scroll speed.
-          cur.explode = goal.explode > explodeWas && !reduced ? Math.min(goal.explode, explodeWas + dt * .9) : cur.explode;
+          if (pinned) {
+            // A fast flick must not skip the show: going forward the burst plays at most this fast (whole thing ~1.1s),
+            // then keeps playing on its own behind the page. Scrolling back up still reassembles at scroll speed.
+            cur.explode = goal.explode > explodeWas && !reduced ? Math.min(goal.explode, explodeWas + dt * .9) : cur.explode;
+          } else {
+            // On a phone the burst is the scroll, not a clip the scroll triggers: the glass is
+            // exactly as far apart as the thumb has pushed it, and closes again on the way back.
+            // The speed cap above would keep it playing after the thumb stopped, which reads as
+            // the animation running away from the finger.
+            cur.explode = reduced ? 0 : goal.explode;
+          }
           Object.assign(cur, burstLook(cur.explode));
         }
         cur.y = goal.y;   // position tracks the page exactly; only the look eases
         if (background) {
           container.style.opacity = cur.opacity.toFixed(3); container.style.visibility = cur.opacity < .01 ? "hidden" : "visible";
           // the brain and its burst never cross the industry strip: cut the layer off at the strip's top edge
-          const strip = burstMode ? document.querySelector(".industry-strip") : null;
+          const strip = pinned ? document.querySelector(".industry-strip") : null;
           const cut = strip ? String(Math.round(Math.max(0, Math.min(innerHeight, innerHeight - strip.getBoundingClientRect().top)))) : "0";
           if (container.dataset.cut !== cut) { container.dataset.cut = cut; container.style.clipPath = cut === "0" ? "" : `inset(0 0 ${cut}px 0)`; }
         }
@@ -503,6 +541,7 @@ export default function BrainScene({ background = false }: { background?: boolea
         hoverZoom += ((hit ? 1 : 0) * .12 - hoverZoom) * (1 - Math.exp(-dt * 1.4));
         uniforms.uRippleT.value += dt;
         uniforms.uExplode.value = reduced ? 0 : cur.explode;
+        uniforms.uSpread.value = pinned ? 1 : .42;
         uniforms.uBulb.value = reduced ? 0 : cur.bulb;
         uniforms.uTime.value = time;
         camera.position.z = cur.z - hoverZoom;

@@ -534,7 +534,7 @@ footer .brand span{transition:color .4s ease}
 .gray-ask input::placeholder{color:#8f92a4}
 .gray-ask button{all:unset;cursor:pointer;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#ff6a4d;color:#11121b;flex-shrink:0}
 .gray-note{margin:0;padding:0 14px 13px;font-size:10.5px;color:#8f92a4}
-@media(max-width:760px){.gray-fab{right:14px;bottom:14px}.gray-panel{right:14px;bottom:70px;max-height:calc(100vh - 110px)}}
+@media(max-width:760px){.gray-fab{right:14px;bottom:calc(14px + env(safe-area-inset-bottom));width:52px;height:52px;padding:0;justify-content:center;gap:0;border-radius:50%}.gray-fab span{display:none}.gray-fab img{width:25px;height:25px}.gray-panel{right:14px;left:14px;width:auto;bottom:calc(76px + env(safe-area-inset-bottom));max-height:min(70vh,calc(100vh - 150px))}}
 @media(prefers-reduced-motion:reduce){.gray-panel{transition:none}.gray-msg.typing span{animation:none}}
 
 /* ---------- the inbox and calendar, shown as the apps themselves ---------- */
@@ -979,3 +979,69 @@ footer .brand span{transition:color .4s ease}
 .ft-social a:hover{color:#fff;border-color:#4a4c5e}
 .ft-social svg{width:14px;height:14px}
 @media(max-width:900px){.ft-top{grid-template-columns:1fr 1fr;gap:28px}.ft-bottom{flex-wrap:wrap;gap:14px}}
+
+/* ---------------------------------------------------------------------------
+   Phone pass. Three things the desktop layout cannot carry down unchanged:
+   mono labels shrink below the readable floor, controls sized for a cursor
+   fall under the thumb minimum, and effects priced for a GPU meet a phone.
+   --------------------------------------------------------------------------- */
+@media(max-width:760px){
+  /* Type floor. These labels were set as low as 7px; a phone reads none of that.
+     Tracking comes in as the size goes up so the lines still fit their boxes. */
+  .hero-bottom{font-size:11px;letter-spacing:.9px;justify-content:center;text-align:center}
+  .particle-brain .art-label.top,.brain-hint{font-size:11px;letter-spacing:.7px}
+  .paper-meta{font-size:10px}.paper-meta span{font-size:9.5px}
+  .plan-top small,.aw-bar .aw-new,.demo-badge,.gm-where span,.industry-grid .eyebrow,
+  .industry-link,.target-label,.contact-card .privacy-note{font-size:11px;letter-spacing:.4px}
+  .gm-meta{font-size:11px}
+  .nm-label{font-size:11px}
+
+  /* Thumb targets. 44px is the floor a finger needs; these were built for a cursor.
+     Padding grows rather than the box, so nothing reflows around them. */
+  .gm-actions .chat,.gm-actions button{min-height:34px;padding:7px 12px}
+  .text-link{min-height:44px}
+  .faqs summary{padding:18px 0;min-height:56px}
+  .brain-controls button{width:44px;height:44px}
+  .footer-top>a:last-child,.footer-bottom a{display:inline-flex;align-items:center;min-height:44px}
+  .source{min-height:52px}
+
+  /* Effects, repriced. A blurred backdrop costs a full-surface readback every
+     frame it moves, which is where a phone loses the frame rather than the look. */
+  .dock{backdrop-filter:none;background:#14141d}
+
+  /* A panel that scrolls should not drag the page behind it once it hits its end. */
+  .gray-panel,.gray-body{overscroll-behavior:contain}
+
+  /* The controls a finger actually lands on. Each grows to the 44px floor without
+     moving its neighbours: the hamburger and the consent box grow by padding, the
+     pricing disclosure by line height, the tabs by min-height. */
+  /* Take the brain out of the page backdrop. Pinned behind a 375px viewport it put its
+     own highlights straight through the hero paragraph; contained, it occupies the box
+     the column layout already reserves below the copy and scrolls away with it. */
+  /* Room for the burst to travel. It opens sideways and downward only: upward is the hero
+     paragraph, which is the overlap this whole block exists to prevent. The mask carries the
+     shards out to nothing instead of cutting them at an edge. */
+  .brain-canvas{position:absolute!important;inset:-8% -17% -22% -17%!important;z-index:0;
+    -webkit-mask-image:radial-gradient(ellipse 68% 64% at 50% 47%,#000 56%,transparent 100%)!important;
+    mask-image:radial-gradient(ellipse 68% 64% at 50% 47%,#000 56%,transparent 100%)!important}
+  .particle-brain{isolation:isolate;overflow:visible}
+
+  .menu-button{padding:12px;margin-right:-4px}
+  .pf .ask-bar button{width:44px;height:44px;flex-shrink:0}
+  .industry-tabs [role=tab],.demo-tabs button,.group\/tabs-list button{min-height:44px}
+  .plan-more{min-height:44px;padding:12px 0;text-align:left}
+  .consent{gap:14px;align-items:center}
+  .consent button.peer{width:22px;height:22px;flex-shrink:0;margin:0}
+  .ft-links a{min-height:40px;display:flex;align-items:center}
+  .gm-search{min-height:38px}
+
+  /* Diagram labels were set at 8.5px for a wide canvas. At phone width the stage
+     is 293px and that type is decoration rather than information, so it reads at
+     the floor or it does not ship. */
+  .lk-model small,.lk-edge em,.lk-pill,.lk-desk span{font-size:11px;letter-spacing:.3px}
+  .cal-gutter span,.ev,.metric-row span,.tag,.mtag,.ft-links span,.kicker,.fine,
+  .gm-q span,.doc-col .paper-meta span{font-size:11px}
+  /* A few of these are set from more specific desktop rules, so match the weight. */
+  .wh .kicker,.sa-copy .eyebrow,.shadow-grid .eyebrow,
+  button.note span.tag,.sf-grid .tag,.gl-row .mtag{font-size:11px;letter-spacing:.35px}
+}
